@@ -20,6 +20,10 @@ module.exports = async (req, res) => {
       return res.status(400).json({ error: 'No code provided' });
     }
 
+    if (code.length > 500000) {
+      return res.status(400).json({ error: 'Code too large (max 500KB)' });
+    }
+
     const tokens = tokenize(code);
     const parser = new Parser(tokens);
     const ast = parser.parse();
@@ -35,9 +39,14 @@ module.exports = async (req, res) => {
     res.status(200).json({
       id,
       url: `${baseUrl}/api/fetch?id=${id}`,
+      size: vmScript.length,
       script: vmScript
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({
+      error: 'Compilation failed',
+      details: err.message,
+      position: err.pos || null
+    });
   }
 };
